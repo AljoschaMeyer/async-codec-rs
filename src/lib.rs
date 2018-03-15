@@ -87,6 +87,3 @@ impl<E> From<FutIoErr> for DecodeError<E> {
         DecodeError::ReaderError(err)
     }
 }
-
-// #[cfg(test)]
-// mod tests {}
