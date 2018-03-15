@@ -1,0 +1,12 @@
+[package]
+name = "async-codec"
+version = "0.1.0"
+authors = ["AljoschaMeyer <mail@aljoscha-meyer.de>"]
+description = "Traits for composable encoding and decoding via AsyncRead/AsyncWrites."
+repository = "https://github.com/AljoschaMeyer/async-codec"
+readme = "README.md"
+license = "MIT"
+
+[dependencies]
+futures-core = "0.2.0-alpha"
+futures-io = "0.2.0-alpha"
