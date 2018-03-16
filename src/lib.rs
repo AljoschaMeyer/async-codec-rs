@@ -13,10 +13,11 @@ use futures_io::{AsyncWrite, AsyncRead, Error as FutIoErr};
 
 /// A trait for types that asynchronously encode into an `AsyncWrite`.
 pub trait AsyncEncode<W: AsyncWrite> {
-    /// Call `writer.poll_write` exactly once with encoded data, propagating any `Err` and
+    /// Call `writer.poll_write` once with encoded data, propagating any `Err` and
     /// `Pending`, and returning how many bytes were written.
     ///
-    /// After the value has been fully encoded, the next call to this must return `Ok(Ready(0))`.
+    /// After the value has been fully encoded, the next call to this must return `Ok(Ready(0))`
+    /// and must not call `writer_poll_write`.
     /// If `writer.poll_write` returns `Ok(Ready(0))` even though the value has not been fully
     /// encoded, this must return an error of kind `WriteZero`.
     fn poll_encode(&mut self, cx: &mut Context, writer: &mut W) -> Poll<usize, FutIoErr>;
@@ -25,6 +26,8 @@ pub trait AsyncEncode<W: AsyncWrite> {
 /// An `AsyncEncode` that can precompute how many bytes of encoded data it produces.
 pub trait AsyncEncodeLen<W: AsyncWrite>: AsyncEncode<W> {
     /// Return the exact number of bytes this will still write.
+    ///
+    /// This may not be called once `poll_encode` returned `Ok(0)`.
     fn remaining_bytes(&self) -> usize;
 }
 
