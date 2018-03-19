@@ -11,6 +11,25 @@ use futures_core::Poll;
 use futures_core::task::Context;
 use futures_io::{AsyncWrite, AsyncRead, Error as FutIoErr};
 
+/// Indicates whether a value is available, or if the current task has been scheduled for later
+/// wake-up instead.
+///
+/// Unlike the standard `Async` trait, this returns a value with the `Pending` variant.
+///
+/// `T` is the produced value, `S` is the state returned by the `Pending` variant.
+pub enum AsyncVal<T, S> {
+    /// Represents that a value is immediately ready.
+    Ready(T),
+    /// Represents that a value is not ready yet.
+    ///
+    /// When a function returns `Pending`, the function must also ensure that the current task is
+    /// scheduled to be awoken when progress can be made.
+    Pending(S),
+}
+
+/// A convenience wrapper for `Result<AsyncVal<T, S>, E>`.
+pub type PollVal<T, S, E> = Result<AsyncVal<T, S>, E>;
+
 /// A trait for types that asynchronously encode into an `AsyncWrite`.
 pub trait AsyncEncode<W: AsyncWrite> {
     /// Call `writer.poll_write` once with encoded data, propagating any `Err` and
@@ -20,7 +39,7 @@ pub trait AsyncEncode<W: AsyncWrite> {
     /// and must not call `writer_poll_write`.
     /// If `writer.poll_write` returns `Ok(Ready(0))` even though the value has not been fully
     /// encoded, this must return an error of kind `WriteZero`.
-    fn poll_encode(&mut self, cx: &mut Context, writer: &mut W) -> Poll<usize, FutIoErr>;
+    fn poll_encode(self, cx: &mut Context, writer: &mut W) -> PollVal<usize, Self, FutIoErr>;
 }
 
 /// An `AsyncEncode` that can precompute how many bytes of encoded data it produces.
@@ -45,10 +64,10 @@ pub trait AsyncDecode<R: AsyncRead> {
     ///
     /// If `reader.poll_read` returns `Ok(Ready(0))` even though the value has not been fully
     /// decoded, this must return an error of kind `UnexpectedEof`.
-    fn poll_decode(&mut self,
+    fn poll_decode(mut self,
                    cx: &mut Context,
                    reader: &mut R)
-                   -> Poll<(Option<Self::Item>, usize), DecodeError<Self::Error>>;
+                   -> PollVal<(Option<Self::Item>, usize), Self, DecodeError<Self::Error>>;
 }
 
 /// An error that occured during decoding.
