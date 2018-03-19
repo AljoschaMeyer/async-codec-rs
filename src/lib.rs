@@ -7,7 +7,6 @@ extern crate futures_io;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
-use futures_core::Poll;
 use futures_core::task::Context;
 use futures_io::{AsyncWrite, AsyncRead, Error as FutIoErr};
 
@@ -31,7 +30,9 @@ pub enum AsyncVal<T, S> {
 pub type PollVal<T, S, E> = Result<AsyncVal<T, S>, E>;
 
 /// A trait for types that asynchronously encode into an `AsyncWrite`.
-pub trait AsyncEncode<W: AsyncWrite> {
+pub trait AsyncEncode<W: AsyncWrite>
+    where Self: Sized
+{
     /// Call `writer.poll_write` once with encoded data, propagating any `Err` and
     /// `Pending`, and returning how many bytes were written.
     ///
@@ -51,7 +52,9 @@ pub trait AsyncEncodeLen<W: AsyncWrite>: AsyncEncode<W> {
 }
 
 /// A trait for types can be asynchronously decoded from an `AsyncRead`.
-pub trait AsyncDecode<R: AsyncRead> {
+pub trait AsyncDecode<R: AsyncRead>
+    where Self: Sized
+{
     /// The type of the value to decode.
     type Item;
     /// An error indicating how decoding can fail.
@@ -64,7 +67,7 @@ pub trait AsyncDecode<R: AsyncRead> {
     ///
     /// If `reader.poll_read` returns `Ok(Ready(0))` even though the value has not been fully
     /// decoded, this must return an error of kind `UnexpectedEof`.
-    fn poll_decode(mut self,
+    fn poll_decode(self,
                    cx: &mut Context,
                    reader: &mut R)
                    -> PollVal<(Option<Self::Item>, usize), Self, DecodeError<Self::Error>>;
