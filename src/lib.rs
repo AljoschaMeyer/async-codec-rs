@@ -10,24 +10,17 @@ use std::fmt::{self, Display, Formatter};
 use futures_core::task::Context;
 use futures_io::{AsyncWrite, AsyncRead, Error as FutIoErr};
 
-/// Indicates whether a value is available, or if the current task has been scheduled for later
-/// wake-up instead.
-///
-/// Unlike the standard `Async` trait, this returns a value with the `Pending` variant.
-///
-/// `T` is the produced value, `S` is the state returned by the `Pending` variant.
-pub enum AsyncVal<T, S> {
-    /// Represents that a value is immediately ready.
-    Ready(T),
-    /// Represents that a value is not ready yet.
-    ///
-    /// When a function returns `Pending`, the function must also ensure that the current task is
-    /// scheduled to be awoken when progress can be made.
+/// TODO document
+pub enum PollEnc<S> {
+    /// TODO document
+    Done,
+    /// TODO document
+    Progress(S, usize),
+    /// TODO document
     Pending(S),
+    /// TODO document
+    Errored(FutIoErr),
 }
-
-/// A convenience wrapper for `Result<AsyncVal<T, S>, E>`.
-pub type PollVal<T, S, E> = Result<AsyncVal<T, S>, E>;
 
 /// A trait for types that asynchronously encode into an `AsyncWrite`.
 pub trait AsyncEncode<W: AsyncWrite>
@@ -40,7 +33,7 @@ pub trait AsyncEncode<W: AsyncWrite>
     /// and must not call `writer_poll_write`.
     /// If `writer.poll_write` returns `Ok(Ready(0))` even though the value has not been fully
     /// encoded, this must return an error of kind `WriteZero`.
-    fn poll_encode(self, cx: &mut Context, writer: &mut W) -> PollVal<usize, Self, FutIoErr>;
+    fn poll_encode(self, cx: &mut Context, writer: &mut W) -> PollEnc<Self>;
 }
 
 /// An `AsyncEncode` that can precompute how many bytes of encoded data it produces.
@@ -49,6 +42,18 @@ pub trait AsyncEncodeLen<W: AsyncWrite>: AsyncEncode<W> {
     ///
     /// This may not be called once `poll_encode` returned `Ok(0)`.
     fn remaining_bytes(&self) -> usize;
+}
+
+/// TODO document
+pub enum PollDec<T, S, E> {
+    /// TODO document
+    Done(T, usize),
+    /// TODO document
+    Progress(S, usize),
+    /// TODO document
+    Pending(S),
+    /// TODO document
+    Errored(DecodeError<E>),
 }
 
 /// A trait for types can be asynchronously decoded from an `AsyncRead`.
@@ -70,7 +75,7 @@ pub trait AsyncDecode<R: AsyncRead>
     fn poll_decode(self,
                    cx: &mut Context,
                    reader: &mut R)
-                   -> PollVal<(Option<Self::Item>, usize), Self, DecodeError<Self::Error>>;
+                   -> PollDec<Self::Item, Self, Self::Error>;
 }
 
 /// An error that occured during decoding.
