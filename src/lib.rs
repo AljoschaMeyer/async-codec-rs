@@ -13,7 +13,7 @@ use futures_io::{AsyncWrite, AsyncRead, Error as FutIoErr};
 /// TODO document
 pub enum PollEnc<S> {
     /// TODO document
-    Done,
+    Done(usize),
     /// TODO document
     Progress(S, usize),
     /// TODO document
@@ -26,6 +26,7 @@ pub enum PollEnc<S> {
 pub trait AsyncEncode<W: AsyncWrite>
     where Self: Sized
 {
+    // TODO update docs
     /// Call `writer.poll_write` once with encoded data, propagating any `Err` and
     /// `Pending`, and returning how many bytes were written.
     ///
@@ -39,8 +40,6 @@ pub trait AsyncEncode<W: AsyncWrite>
 /// An `AsyncEncode` that can precompute how many bytes of encoded data it produces.
 pub trait AsyncEncodeLen<W: AsyncWrite>: AsyncEncode<W> {
     /// Return the exact number of bytes this will still write.
-    ///
-    /// This may not be called once `poll_encode` returned `Ok(0)`.
     fn remaining_bytes(&self) -> usize;
 }
 
@@ -65,6 +64,7 @@ pub trait AsyncDecode<R: AsyncRead>
     /// An error indicating how decoding can fail.
     type Error;
 
+    // TODO update docs
     /// Call `reader.poll_read` exactly once, propgating any `Err` and `Pending`, and return how
     /// many bytes have been read, as well as the decoded value, once decoding is done.
     ///
