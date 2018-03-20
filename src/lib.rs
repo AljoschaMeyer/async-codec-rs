@@ -10,15 +10,16 @@ use std::fmt::{self, Display, Formatter};
 use futures_core::task::Context;
 use futures_io::{AsyncWrite, AsyncRead, Error as FutIoErr};
 
-/// TODO document
+/// The return value for `poll_encode`.
 pub enum PollEnc<S> {
-    /// TODO document
+    /// The encoder has been run to completion, the last call to `poll_encode` wrote this many bytes.
     Done(usize),
-    /// TODO document
+    /// Encoding is not done yet, but a non-zero number of bytes was written.
     Progress(S, usize),
-    /// TODO document
+    /// Encoding can not make progress, because the writer would block.
+    /// The current task is scheduled to be awoken when progress can be made.
     Pending(S),
-    /// TODO document
+    /// The writer emitted an error.
     Errored(FutIoErr),
 }
 
@@ -26,12 +27,12 @@ pub enum PollEnc<S> {
 pub trait AsyncEncode<W: AsyncWrite>
     where Self: Sized
 {
-    // TODO update docs
     /// Call `writer.poll_write` once with encoded data, propagating any `Err` and
     /// `Pending`, and returning how many bytes were written.
     ///
-    /// After the value has been fully encoded, the next call to this must return `Ok(Ready(0))`
-    /// and must not call `writer_poll_write`.
+    /// This consumes ownership of the encoder. If encoding did not terminate, the return value
+    /// contains a new encoder that will resume at the correct point.
+    ///
     /// If `writer.poll_write` returns `Ok(Ready(0))` even though the value has not been fully
     /// encoded, this must return an error of kind `WriteZero`.
     fn poll_encode(self, cx: &mut Context, writer: &mut W) -> PollEnc<Self>;
@@ -43,15 +44,17 @@ pub trait AsyncEncodeLen<W: AsyncWrite>: AsyncEncode<W> {
     fn remaining_bytes(&self) -> usize;
 }
 
-/// TODO document
+/// The return value for `poll_decode`.
 pub enum PollDec<T, S, E> {
-    /// TODO document
+    /// The decoder has run to completion, yielding an item of type `T`. The second value is the
+    /// number of bytes that were read in the last call to `poll_read`.
     Done(T, usize),
-    /// TODO document
+    /// Decoding is not done yet, but a non-zero number of bytes was read.
     Progress(S, usize),
-    /// TODO document
+    /// Decoding can not make progress, because the reader would block.
+    /// /// The current task is scheduled to be awoken when progress can be made.
     Pending(S),
-    /// TODO document
+    /// An error occured during encoding.
     Errored(DecodeError<E>),
 }
 
@@ -64,11 +67,11 @@ pub trait AsyncDecode<R: AsyncRead>
     /// An error indicating how decoding can fail.
     type Error;
 
-    // TODO update docs
     /// Call `reader.poll_read` exactly once, propgating any `Err` and `Pending`, and return how
     /// many bytes have been read, as well as the decoded value, once decoding is done.
     ///
-    /// This method may not be called after a value has been decoded.
+    /// This consumes ownership of the decoder. If decoding did not terminate, the return value
+    /// contains a new decoder that will resume at the correct point.
     ///
     /// If `reader.poll_read` returns `Ok(Ready(0))` even though the value has not been fully
     /// decoded, this must return an error of kind `UnexpectedEof`.
