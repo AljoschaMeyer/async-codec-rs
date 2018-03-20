@@ -24,7 +24,7 @@ pub enum PollEnc<S> {
 }
 
 /// A trait for types that asynchronously encode into an `AsyncWrite`.
-pub trait AsyncEncode<W: AsyncWrite>
+pub trait AsyncEncode
     where Self: Sized
 {
     /// Call `writer.poll_write` once with encoded data, propagating any `Err` and
@@ -35,11 +35,11 @@ pub trait AsyncEncode<W: AsyncWrite>
     ///
     /// If `writer.poll_write` returns `Ok(Ready(0))` even though the value has not been fully
     /// encoded, this must return an error of kind `WriteZero`.
-    fn poll_encode(self, cx: &mut Context, writer: &mut W) -> PollEnc<Self>;
+    fn poll_encode<W: AsyncWrite>(self, cx: &mut Context, writer: &mut W) -> PollEnc<Self>;
 }
 
 /// An `AsyncEncode` that can precompute how many bytes of encoded data it produces.
-pub trait AsyncEncodeLen<W: AsyncWrite>: AsyncEncode<W> {
+pub trait AsyncEncodeLen: AsyncEncode {
     /// Return the exact number of bytes this will still write.
     fn remaining_bytes(&self) -> usize;
 }
@@ -59,7 +59,7 @@ pub enum PollDec<T, S, E> {
 }
 
 /// A trait for types can be asynchronously decoded from an `AsyncRead`.
-pub trait AsyncDecode<R: AsyncRead>
+pub trait AsyncDecode
     where Self: Sized
 {
     /// The type of the value to decode.
@@ -75,10 +75,10 @@ pub trait AsyncDecode<R: AsyncRead>
     ///
     /// If `reader.poll_read` returns `Ok(Ready(0))` even though the value has not been fully
     /// decoded, this must return an error of kind `UnexpectedEof`.
-    fn poll_decode(self,
-                   cx: &mut Context,
-                   reader: &mut R)
-                   -> PollDec<Self::Item, Self, Self::Error>;
+    fn poll_decode<R: AsyncRead>(self,
+                                 cx: &mut Context,
+                                 reader: &mut R)
+                                 -> PollDec<Self::Item, Self, Self::Error>;
 }
 
 /// An error that occured during decoding.
