@@ -1,6 +1,6 @@
 [package]
 name = "async-codec"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["AljoschaMeyer <mail@aljoscha-meyer.de>"]
 description = "Traits for composable encoding and decoding via AsyncRead/AsyncWrites."
 repository = "https://github.com/AljoschaMeyer/async-codec"
